@@ -1,0 +1,5 @@
+# node-canvas requires native Cairo/Pango/JPEG/GIF/SVG system libraries.
+# Railway uses Nixpacks; these packages provide the headers and shared
+# libraries the `canvas` npm package links against at install + runtime.
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "pkg-config", "cairo", "pango", "libjpeg", "giflib", "librsvg", "pixman"]

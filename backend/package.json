@@ -1,0 +1,28 @@
+{
+  "name": "zh-facebook-agent-backend",
+  "version": "1.0.0",
+  "description": "Agentic Facebook post automation backend for ZH Web Solutions",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "import:voice": "node scripts/importVoiceExamples.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "canvas": "latest",
+    "cloudinary": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "jsonwebtoken": "latest",
+    "node-cron": "latest",
+    "pg": "latest",
+    "twilio": "latest",
+    "uuid": "latest"
+  }
+}
