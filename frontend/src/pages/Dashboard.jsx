@@ -53,9 +53,7 @@ export default function Dashboard() {
   }
 
   function generateRandom() {
-    const random = POST_TYPES[Math.floor(Math.random() * POST_TYPES.length)];
-    setGenType(random.value);
-    generatePost(random.value);
+    generatePost(genType);
   }
 
   return (
