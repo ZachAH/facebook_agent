@@ -23,6 +23,7 @@
     "node-cron": "latest",
     "pg": "latest",
     "twilio": "latest",
-    "uuid": "latest"
+    "uuid": "latest",
+    "web-push": "^3.6.7"
   }
 }

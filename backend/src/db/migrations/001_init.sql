@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Push notification subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id         SERIAL PRIMARY KEY,
+  endpoint   TEXT NOT NULL UNIQUE,
+  sub_json   TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert defaults (idempotent — safe to run on every boot)
 INSERT INTO settings (key, value) VALUES
   ('post_time_tuesday',   '09:00'),

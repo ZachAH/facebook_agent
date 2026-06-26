@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import postRoutes from './routes/posts.js';
 import settingsRoutes from './routes/settings.js';
 import webhookRoutes from './routes/webhook.js';
+import notificationRoutes from './routes/notifications.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,8 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/settings', settingsRoutes);
+
+app.use('/api/notifications', notificationRoutes);
 
 // Twilio webhook — no JWT.
 app.use('/webhook/sms', webhookRoutes);

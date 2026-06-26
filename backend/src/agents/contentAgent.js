@@ -13,7 +13,7 @@ const USER_PROMPTS = {
   wait_what_wednesday:
     "Write a Wait What Wednesday post. Share a surprising or counterintuitive fact about websites, SEO, or running a business online. Lead with 'Wait, what?' or a variation.",
   friday_weekend:
-    'Write a casual Friday post. Light, conversational, end-of-week energy. Can be a reflection on the week, a weekend wish, a local WI shoutout, or a fun question for followers.',
+    'Write a feel-good Friday post to close out the work week. Warm, upbeat, and personal — like a quick note from a neighbor. Could be a weekend wish, a win from the week, a shoutout to Wisconsin, or a lighthearted question for followers. No tech tips, no sales pitch. Just good vibes heading into the weekend.',
 };
 
 function buildSystemPrompt(voiceExamples) {

@@ -3,6 +3,7 @@ import { query } from '../db/client.js';
 import { generatePost } from '../agents/contentAgent.js';
 import { generateImage } from '../services/imageService.js';
 import { sendDraftSMS } from '../services/twilioService.js';
+import { sendDraftNotification } from '../services/notificationService.js';
 
 const TIMEZONE = 'America/Chicago'; // Central Time
 
@@ -64,9 +65,16 @@ async function runJob(postType, timeKey) {
       "SELECT value FROM settings WHERE key = 'sms_active'"
     );
     if (smsRows[0]?.value === 'true') {
-      await sendDraftSMS(post);
+      try {
+        await sendDraftSMS(post);
+      } catch (smsErr) {
+        console.warn('[cron] SMS send failed (post still saved):', smsErr.message);
+      }
     }
 
+    sendDraftNotification(post).catch((err) =>
+      console.warn('[cron] push notification failed:', err.message)
+    );
     console.log(`[cron] ${postType} draft saved (post ${post.id})`);
   } catch (err) {
     console.error(`[cron] ${postType} job failed:`, err.message || err);

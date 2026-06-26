@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client.js';
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
 const SCHEDULE_FIELDS = [
   { key: 'post_time_tuesday', label: 'Tuesday' },
   { key: 'post_time_wednesday', label: 'Wednesday' },
@@ -15,6 +22,22 @@ export default function Settings() {
   const [health, setHealth] = useState(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pushStatus, setPushStatus] = useState('loading'); // loading | unsupported | denied | subscribed | unsubscribed
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPushStatus('unsupported');
+    } else if (Notification.permission === 'denied') {
+      setPushStatus('denied');
+    } else {
+      navigator.serviceWorker.ready.then((reg) =>
+        reg.pushManager.getSubscription().then((sub) =>
+          setPushStatus(sub ? 'subscribed' : 'unsubscribed')
+        )
+      ).catch(() => setPushStatus('unsubscribed'));
+    }
+  }, []);
 
   useEffect(() => {
     api
@@ -74,6 +97,44 @@ export default function Settings() {
       setExamples((prev) => prev.filter((e) => e.id !== id));
     } catch {
       setError('Could not delete example.');
+    }
+  }
+
+  async function enableNotifications() {
+    setPushBusy(true);
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { setPushStatus('denied'); return; }
+
+      const { data } = await api.get('/notifications/vapid-public-key');
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.key),
+      });
+      await api.post('/notifications/subscribe', sub.toJSON());
+      setPushStatus('subscribed');
+    } catch (err) {
+      setError('Could not enable notifications: ' + err.message);
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function disableNotifications() {
+    setPushBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await api.post('/notifications/unsubscribe', { endpoint: sub.endpoint });
+        await sub.unsubscribe();
+      }
+      setPushStatus('unsubscribed');
+    } catch (err) {
+      setError('Could not disable notifications: ' + err.message);
+    } finally {
+      setPushBusy(false);
     }
   }
 
@@ -159,7 +220,40 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Section 3: Token health */}
+      {/* Section 3: Push notifications */}
+      <div className="card">
+        <h2 className="section-title">Push notifications</h2>
+        <p className="subtitle" style={{ marginBottom: 14 }}>
+          Get a notification on this device whenever a new draft is ready to review.
+          {pushStatus === 'subscribed' && ' Add this site to your home screen for the full app experience.'}
+        </p>
+
+        {pushStatus === 'unsupported' && (
+          <p className="subtitle" style={{ color: 'var(--red)' }}>
+            Your browser doesn't support push notifications.
+          </p>
+        )}
+        {pushStatus === 'denied' && (
+          <p className="subtitle" style={{ color: 'var(--red)' }}>
+            Notifications are blocked. Open your browser settings and allow notifications for this site, then refresh.
+          </p>
+        )}
+        {(pushStatus === 'unsubscribed' || pushStatus === 'loading') && pushStatus !== 'denied' && pushStatus !== 'unsupported' && (
+          <button className="btn-primary" onClick={enableNotifications} disabled={pushBusy || pushStatus === 'loading'}>
+            {pushBusy ? 'Enabling…' : '🔔 Enable notifications on this device'}
+          </button>
+        )}
+        {pushStatus === 'subscribed' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--green)', fontSize: 14 }}>✓ Notifications active on this device</span>
+            <button className="btn-ghost" onClick={disableNotifications} disabled={pushBusy}>
+              {pushBusy ? 'Disabling…' : 'Turn off'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Section 4: Token health */}
       <div className="card">
         <h2 className="section-title">Integration health</h2>
         <button className="btn-ghost" onClick={runHealthCheck} disabled={healthLoading}>
