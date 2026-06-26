@@ -6,6 +6,7 @@ const POST_TYPES = [
   { value: 'tech_tip_tuesday', label: 'Tech Tip Tuesday', day: 2 },
   { value: 'wait_what_wednesday', label: 'Wait What Wednesday', day: 3 },
   { value: 'friday_weekend', label: 'Friday Feel-Good', day: 5 },
+  { value: 'general', label: 'General Post', day: null },
 ];
 
 function defaultPostType() {

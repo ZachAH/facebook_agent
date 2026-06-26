@@ -14,6 +14,8 @@ const USER_PROMPTS = {
     "Write a Wait What Wednesday post. Share a surprising or counterintuitive fact about websites, SEO, or running a business online. Lead with 'Wait, what?' or a variation.",
   friday_weekend:
     'Write a feel-good Friday post to close out the work week. Warm, upbeat, and personal — like a quick note from a neighbor. Could be a weekend wish, a win from the week, a shoutout to Wisconsin, or a lighthearted question for followers. No tech tips, no sales pitch. Just good vibes heading into the weekend.',
+  general:
+    'Write a general Facebook post for ZH Web Solutions. Could be a relatable observation about running a small business online, a quick win or story from a client project, a question to spark engagement, or a reminder about why owning your website matters. Keep it natural and conversational — no forced themes, just something worth saying today.',
 };
 
 function buildSystemPrompt(voiceExamples) {

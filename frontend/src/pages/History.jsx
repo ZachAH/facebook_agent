@@ -4,7 +4,8 @@ import api from '../api/client.js';
 const TYPE_LABELS = {
   tech_tip_tuesday: 'Tech Tip Tuesday',
   wait_what_wednesday: 'Wait What Wednesday',
-  friday_weekend: 'Friday',
+  friday_weekend: 'Friday Feel-Good',
+  general: 'General Post',
 };
 
 function StatusBadge({ status }) {

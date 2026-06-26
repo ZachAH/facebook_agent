@@ -5,7 +5,8 @@ import ImagePreview from './ImagePreview.jsx';
 const TYPE_LABELS = {
   tech_tip_tuesday: 'Tech Tip Tuesday',
   wait_what_wednesday: 'Wait What Wednesday',
-  friday_weekend: 'Friday',
+  friday_weekend: 'Friday Feel-Good',
+  general: 'General Post',
 };
 
 /**
