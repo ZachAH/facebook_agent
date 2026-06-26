@@ -12,7 +12,7 @@ const router = Router();
 // All post routes require a valid JWT.
 router.use(requireAuth);
 
-const VALID_TYPES = ['tech_tip_tuesday', 'wait_what_wednesday', 'friday_weekend'];
+const VALID_TYPES = ['tech_tip_tuesday', 'wait_what_wednesday', 'friday_weekend', 'general'];
 
 /**
  * POST /api/posts/generate
