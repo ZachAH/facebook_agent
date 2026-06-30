@@ -13,16 +13,15 @@ const TYPE_LABELS = {
   friday_weekend: 'Friday Feel-Good',
 };
 
-export async function sendDraftNotification(post) {
+/**
+ * Send a push notification to every registered device. Prunes subscriptions
+ * the push service reports as gone (404/410). Shared by draft + system alerts.
+ */
+export async function sendPushToAll({ title, body, url = '/' }) {
   const { rows } = await query('SELECT sub_json, id FROM push_subscriptions');
   if (!rows.length) return;
 
-  const label = TYPE_LABELS[post.post_type] || post.post_type;
-  const payload = JSON.stringify({
-    title: `New ${label} draft ready`,
-    body: post.content.slice(0, 100) + (post.content.length > 100 ? '…' : ''),
-    url: '/',
-  });
+  const payload = JSON.stringify({ title, body, url });
 
   const dead = [];
   await Promise.allSettled(
@@ -40,4 +39,13 @@ export async function sendDraftNotification(post) {
   if (dead.length) {
     await query(`DELETE FROM push_subscriptions WHERE id = ANY($1)`, [dead]);
   }
+}
+
+export async function sendDraftNotification(post) {
+  const label = TYPE_LABELS[post.post_type] || post.post_type;
+  await sendPushToAll({
+    title: `New ${label} draft ready`,
+    body: post.content.slice(0, 100) + (post.content.length > 100 ? '…' : ''),
+    url: '/',
+  });
 }

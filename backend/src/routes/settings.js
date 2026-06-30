@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { requireAuth } from '../middleware/auth.js';
-import { checkConnection as checkFacebook } from '../services/facebookService.js';
+import {
+  checkConnection as checkFacebook,
+  getTokenStatus as getFacebookTokenStatus,
+} from '../services/facebookService.js';
 import { checkCredentials as checkTwilio } from '../services/twilioService.js';
 
 const router = Router();
@@ -76,8 +79,12 @@ router.delete('/voice-examples/:id', async (req, res) => {
 
 /** GET /api/settings/health-check — test FB + Twilio credentials. */
 router.get('/health-check', async (_req, res) => {
-  const [facebook, twilio] = await Promise.all([checkFacebook(), checkTwilio()]);
-  res.json({ facebook, twilio });
+  const [facebook, facebookToken, twilio] = await Promise.all([
+    checkFacebook(),
+    getFacebookTokenStatus(),
+    checkTwilio(),
+  ]);
+  res.json({ facebook: { ...facebook, token: facebookToken }, twilio });
 });
 
 export default router;

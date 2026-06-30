@@ -2,10 +2,17 @@ import cron from 'node-cron';
 import { query } from '../db/client.js';
 import { generatePost } from '../agents/contentAgent.js';
 import { generateImage } from '../services/imageService.js';
+import { getTokenStatus } from '../services/facebookService.js';
 import { sendDraftSMS } from '../services/twilioService.js';
-import { sendDraftNotification } from '../services/notificationService.js';
+import {
+  sendDraftNotification,
+  sendPushToAll,
+} from '../services/notificationService.js';
 
 const TIMEZONE = 'America/Chicago'; // Central Time
+
+// Warn the owner this many days before the Facebook page token expires.
+const TOKEN_WARN_DAYS = 7;
 
 // Drafts are generated a couple hours before the configured post time so the
 // owner has a window to approve via SMS.
@@ -81,10 +88,58 @@ async function runJob(postType, timeKey) {
   }
 }
 
+/**
+ * Daily check that pushes a warning when the Facebook page token is invalid or
+ * within TOKEN_WARN_DAYS of expiring. Throttled via the `settings` table so the
+ * owner is notified once per distinct expiry (or once for an invalid token),
+ * not every single day.
+ */
+async function runTokenCheck() {
+  try {
+    const status = await getTokenStatus();
+
+    // Couldn't determine status (e.g. transient Graph error) — don't notify.
+    if (!status.ok) {
+      console.warn('[cron] token check could not read status:', status.error);
+      return;
+    }
+    // Healthy and either never-expires or comfortably far out — nothing to do.
+    if (status.isValid && (status.neverExpires || status.daysRemaining > TOKEN_WARN_DAYS)) {
+      return;
+    }
+
+    // Throttle key: the expiry we're warning about (or 'invalid'). We only
+    // notify when this differs from the last value we warned for.
+    const warnKey = status.isValid ? status.expiresAt || 'unknown' : 'invalid';
+    const { rows } = await query("SELECT value FROM settings WHERE key = 'fb_token_warned_for'");
+    if (rows[0]?.value === warnKey) return; // already warned for this state
+
+    const body = status.isValid
+      ? `Your Facebook page token expires in ${status.daysRemaining} day${
+          status.daysRemaining === 1 ? '' : 's'
+        }. Generate a fresh one and update Railway before posts start failing.`
+      : 'Your Facebook page token is no longer valid. Generate a fresh one and update Railway to resume posting.';
+
+    await sendPushToAll({ title: 'Facebook token needs attention', body, url: '/' });
+
+    await query(
+      `INSERT INTO settings (key, value, updated_at)
+       VALUES ('fb_token_warned_for', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [warnKey]
+    );
+    console.log(`[cron] token warning sent (${warnKey})`);
+  } catch (err) {
+    console.error('[cron] token check failed:', err.message || err);
+  }
+}
+
 /** Register all weekly cron jobs. Called once on app init. */
 export function startScheduler() {
   for (const { expr, postType, timeKey } of JOBS) {
     cron.schedule(expr, () => runJob(postType, timeKey), { timezone: TIMEZONE });
   }
-  console.log(`[cron] scheduler started (${JOBS.length} jobs, ${TIMEZONE})`);
+  // Daily token health check at 9am CT.
+  cron.schedule('0 9 * * *', runTokenCheck, { timezone: TIMEZONE });
+  console.log(`[cron] scheduler started (${JOBS.length} jobs + token check, ${TIMEZONE})`);
 }

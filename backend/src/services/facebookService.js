@@ -77,6 +77,64 @@ export async function publishPost(post) {
 }
 
 /**
+ * Inspect the configured page token via Graph's debug_token endpoint and report
+ * when it expires. Used to warn the owner *before* the token lapses instead of
+ * discovering it through a failed publish.
+ *
+ * debug_token needs an app-level token to inspect another token. If FB_APP_ID
+ * and FB_APP_SECRET are set we use an app access token (the correct way);
+ * otherwise we fall back to inspecting the token with itself, which works for a
+ * token whose owner is a developer of the app and degrades gracefully if not.
+ *
+ * @returns {Promise<{
+ *   ok: boolean,
+ *   isValid?: boolean,
+ *   neverExpires?: boolean,
+ *   expiresAt?: string|null,   // ISO string, or null when it never expires
+ *   daysRemaining?: number|null,
+ *   error?: string
+ * }>}
+ */
+export async function getTokenStatus() {
+  const token = process.env.FB_PAGE_ACCESS_TOKEN;
+  if (!token) return { ok: false, error: 'FB_PAGE_ACCESS_TOKEN is not set' };
+
+  const appId = process.env.FB_APP_ID;
+  const appSecret = process.env.FB_APP_SECRET;
+  const inspector = appId && appSecret ? `${appId}|${appSecret}` : token;
+
+  try {
+    const url =
+      `${graphUrl('debug_token')}?input_token=${encodeURIComponent(token)}` +
+      `&access_token=${encodeURIComponent(inspector)}`;
+    const response = await fetch(url);
+    const body = await response.json();
+
+    if (!response.ok || body.error || !body.data) {
+      return { ok: false, error: body.error?.message || `HTTP ${response.status}` };
+    }
+
+    const data = body.data;
+    // expires_at is a Unix timestamp in seconds; 0 means the token never expires.
+    const neverExpires = !data.expires_at || data.expires_at === 0;
+    const expiresAt = neverExpires ? null : new Date(data.expires_at * 1000);
+    const daysRemaining = expiresAt
+      ? Math.floor((expiresAt.getTime() - Date.now()) / 86_400_000)
+      : null;
+
+    return {
+      ok: true,
+      isValid: Boolean(data.is_valid),
+      neverExpires,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      daysRemaining,
+    };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+}
+
+/**
  * Lightweight connectivity/credential check for the Settings "token health"
  * panel. Confirms the page token can read the page object.
  */
