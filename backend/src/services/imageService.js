@@ -1,9 +1,19 @@
-import { createCanvas } from 'canvas';
+import { createCanvas, registerFont } from 'canvas';
 import { v2 as cloudinary } from 'cloudinary';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
+
+// Register bundled fonts so rendering does not depend on whatever fonts happen
+// to be installed in the deploy image. Railway's container ships no fonts, so
+// without this every glyph renders as a missing-glyph box (tofu).
+// Must run before any canvas context is created.
+const FONTS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'assets', 'fonts');
+registerFont(join(FONTS_DIR, 'Inter-Regular.ttf'), { family: 'Inter', weight: 'normal' });
+registerFont(join(FONTS_DIR, 'Inter-SemiBold.ttf'), { family: 'Inter', weight: '600' });
+registerFont(join(FONTS_DIR, 'Inter-Bold.ttf'), { family: 'Inter', weight: 'bold' });
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -62,7 +72,7 @@ function renderTemplate(content, template) {
 
   // Top-left label
   ctx.fillStyle = template.accent;
-  ctx.font = 'bold 36px sans-serif';
+  ctx.font = 'bold 36px Inter';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillText(template.label, 72, 96);
@@ -76,7 +86,7 @@ function renderTemplate(content, template) {
   // Shrink font until the wrapped block fits both width and height budgets,
   // targeting ~60 chars per line as a starting point.
   while (fontSize >= 28) {
-    ctx.font = `600 ${fontSize}px sans-serif`;
+    ctx.font = `600 ${fontSize}px Inter`;
     lines = wrapLines(ctx, content, maxTextWidth);
     const lineHeight = fontSize * 1.3;
     if (lines.length * lineHeight <= maxTextHeight && lines.length <= 8) break;
@@ -95,12 +105,12 @@ function renderTemplate(content, template) {
   }
 
   // Footer
-  ctx.font = 'bold 28px sans-serif';
+  ctx.font = 'bold 28px Inter';
   ctx.fillStyle = WHITE;
   ctx.textAlign = 'left';
   ctx.fillText('ZH Web Solutions', 72, HEIGHT - 56);
 
-  ctx.font = '24px sans-serif';
+  ctx.font = '24px Inter';
   ctx.fillStyle = MUTED;
   ctx.textAlign = 'right';
   ctx.fillText('zachhowell.dev', WIDTH - 72, HEIGHT - 56);
