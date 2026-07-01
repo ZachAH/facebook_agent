@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "import:voice": "node scripts/importVoiceExamples.js"
+    "import:voice": "node scripts/importVoiceExamples.js",
+    "fb:token": "node scripts/getPageToken.js"
   },
   "engines": {
     "node": ">=20"
