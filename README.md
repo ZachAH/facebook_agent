@@ -93,7 +93,8 @@ npm run import:voice
 | `TWILIO_FROM_NUMBER` | Your Twilio phone number |
 | `OWNER_PHONE_NUMBER` | Your phone number for SMS approvals |
 | `FB_PAGE_ID` | Your Facebook Page ID (not personal profile) |
-| `FB_PAGE_ACCESS_TOKEN` | Long-lived Page Access Token from Graph API Explorer |
+| `FB_PAGE_ACCESS_TOKEN` | Non-expiring Page Access Token — mint with `npm run fb:token` (see below) |
+| `FB_APP_ID` / `FB_APP_SECRET` | developers.facebook.com → your app → Settings → Basic |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | cloudinary.com → Dashboard |
 | `JWT_SECRET` | Any long random string |
 | `ADMIN_PASSWORD` | Your dashboard login password |
@@ -156,9 +157,22 @@ After deploying both, update:
 
 ---
 
-## Facebook token refresh
+## Facebook token
 
-The app uses a long-lived Page Access Token which expires every ~60 days. When publishing fails with an auth error, generate a fresh token in the [Graph API Explorer](https://developers.facebook.com/tools/explorer/) and update `FB_PAGE_ACCESS_TOKEN` in Railway.
+The app authenticates with a **non-expiring Page Access Token**. Don't paste a token straight from the Graph API Explorer — those are short-lived and die within hours (and any page token derived from one dies with it). Instead, mint a permanent token with the bundled script:
+
+1. Set `FB_APP_ID` and `FB_APP_SECRET` in `backend/.env` (developers.facebook.com → your app → Settings → Basic).
+2. In the [Graph API Explorer](https://developers.facebook.com/tools/explorer/), **Get User Access Token** with the `pages_manage_posts` and `pages_read_engagement` scopes, and copy it.
+3. Run:
+
+   ```bash
+   cd backend
+   npm run fb:token <SHORT_LIVED_USER_TOKEN>
+   ```
+
+   The script exchanges it for a long-lived user token, derives the page token, and confirms `Expires: NEVER`. Paste the printed token into `FB_PAGE_ACCESS_TOKEN` on Railway (and your local `.env`).
+
+A daily cron checks token health and sends a push notification if it ever goes invalid or approaches expiry, so a lapse won't silently break posting. The token stays valid as long as you remain a page admin and don't change your Facebook password — if either changes, just re-run `npm run fb:token`.
 
 ---
 
