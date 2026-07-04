@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { query } from '../db/client.js';
+import { signActionToken } from '../middleware/auth.js';
 
 webpush.setVapidDetails(
   `mailto:${process.env.VAPID_EMAIL}`,
@@ -16,12 +17,16 @@ const TYPE_LABELS = {
 /**
  * Send a push notification to every registered device. Prunes subscriptions
  * the push service reports as gone (404/410). Shared by draft + system alerts.
+ *
+ * Any extra fields (postId, token, apiBase, actions) are passed straight
+ * through to the service worker, which uses them to render one-tap action
+ * buttons and call the post-action endpoint.
  */
-export async function sendPushToAll({ title, body, url = '/' }) {
+export async function sendPushToAll({ title, body, url = '/', ...extra }) {
   const { rows } = await query('SELECT sub_json, id FROM push_subscriptions');
   if (!rows.length) return;
 
-  const payload = JSON.stringify({ title, body, url });
+  const payload = JSON.stringify({ title, body, url, ...extra });
 
   const dead = [];
   await Promise.allSettled(
@@ -47,5 +52,13 @@ export async function sendDraftNotification(post) {
     title: `New ${label} draft ready`,
     body: post.content.slice(0, 100) + (post.content.length > 100 ? '…' : ''),
     url: '/',
+    // One-tap approve/reject payload for the service worker.
+    postId: post.id,
+    token: signActionToken(post.id),
+    apiBase: process.env.PUBLIC_API_URL || '',
+    actions: [
+      { action: 'approve', title: '✓ Approve' },
+      { action: 'reject', title: '✗ Reject' },
+    ],
   });
 }

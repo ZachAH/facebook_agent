@@ -7,6 +7,7 @@ import { startScheduler } from './cron/scheduler.js';
 
 import authRoutes from './routes/auth.js';
 import postRoutes from './routes/posts.js';
+import postActionRoutes from './routes/postActions.js';
 import settingsRoutes from './routes/settings.js';
 import webhookRoutes from './routes/webhook.js';
 import notificationRoutes from './routes/notifications.js';
@@ -35,6 +36,9 @@ app.use('/api/posts', postRoutes);
 app.use('/api/settings', settingsRoutes);
 
 app.use('/api/notifications', notificationRoutes);
+
+// One-tap approve/reject from push notifications — token-authed, no JWT.
+app.use('/api/post-actions', postActionRoutes);
 
 // Twilio webhook — no JWT.
 app.use('/webhook/sms', webhookRoutes);

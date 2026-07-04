@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db/client.js';
 import { requireAuth } from '../middleware/auth.js';
-import { publishPost } from '../services/facebookService.js';
+import { approveAndPublish, rejectDraft } from '../services/postActionService.js';
 import { generatePost } from '../agents/contentAgent.js';
 import { generateImage } from '../services/imageService.js';
 import { sendDraftSMS } from '../services/twilioService.js';
@@ -109,15 +109,9 @@ router.patch('/:id', async (req, res) => {
 /** POST /api/posts/:id/approve — approve + publish from the dashboard. */
 router.post('/:id/approve', async (req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
-    const post = rows[0];
-    if (!post) return res.status(404).json({ error: 'Post not found' });
-
-    await query("UPDATE posts SET status = 'approved' WHERE id = $1", [post.id]);
-    const result = await publishPost(post);
-
-    const { rows: updated } = await query('SELECT * FROM posts WHERE id = $1', [post.id]);
-    res.json({ ...result, post: updated[0] });
+    const result = await approveAndPublish(req.params.id);
+    if (result.notFound) return res.status(404).json({ error: 'Post not found' });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -126,12 +120,9 @@ router.post('/:id/approve', async (req, res) => {
 /** POST /api/posts/:id/reject — reject from the dashboard. */
 router.post('/:id/reject', async (req, res) => {
   try {
-    const { rows } = await query(
-      "UPDATE posts SET status = 'rejected' WHERE id = $1 RETURNING *",
-      [req.params.id]
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
-    res.json(rows[0]);
+    const result = await rejectDraft(req.params.id);
+    if (result.notFound) return res.status(404).json({ error: 'Post not found' });
+    res.json(result.post);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
