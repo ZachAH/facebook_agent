@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [genType, setGenType] = useState(defaultPostType);
+  const [genTopic, setGenTopic] = useState('');
   const [genError, setGenError] = useState(null);
 
   function loadPosts() {
@@ -43,7 +44,11 @@ export default function Dashboard() {
     setGenerating(true);
     setGenError(null);
     try {
-      const { data } = await api.post('/posts/generate', { type: type || genType });
+      const topic = genTopic.trim();
+      const { data } = await api.post('/posts/generate', {
+        type: type || genType,
+        ...(topic ? { topic } : {}),
+      });
       setPosts((prev) => [data, ...prev]);
     } catch (err) {
       setGenError(err.response?.data?.error || 'Generation failed.');
@@ -79,9 +84,21 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => generatePost()} disabled={generating}>
             {generating ? 'Generating…' : '+ Generate Draft'}
           </button>
-          <button className="btn-ghost" onClick={generateRandom} disabled={generating} title="Pick a random post type and generate">
+          <button className="btn-ghost" onClick={generateRandom} disabled={generating} title="Generate a variation of the selected type">
             🎲 Random
           </button>
+          <input
+            type="text"
+            value={genTopic}
+            onChange={(e) => setGenTopic(e.target.value)}
+            disabled={generating}
+            placeholder="Optional topic or angle — e.g. the internet, with a case of the Mondays"
+            title="Steer what the post is about. Leave blank for a standard post."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !generating) generatePost();
+            }}
+            style={{ flex: '1 1 260px', minWidth: 200 }}
+          />
           {genError && <span className="error-text" style={{ fontSize: 13 }}>{genError}</span>}
         </div>
       </div>

@@ -19,12 +19,15 @@ const VALID_TYPES = ['tech_tip_tuesday', 'wait_what_wednesday', 'friday_weekend'
  * Manually trigger a draft (same logic as the cron job). Body: { type }
  */
 router.post('/generate', async (req, res) => {
-  const { type } = req.body || {};
+  const { type, topic } = req.body || {};
   if (!VALID_TYPES.includes(type)) {
     return res.status(400).json({ error: `type must be one of: ${VALID_TYPES.join(', ')}` });
   }
+  if (topic !== undefined && typeof topic !== 'string') {
+    return res.status(400).json({ error: 'topic must be a string' });
+  }
   try {
-    const content = await generatePost(type);
+    const content = await generatePost(type, topic);
     const imageUrl = await generateImage(type, content);
 
     const { rows } = await query(

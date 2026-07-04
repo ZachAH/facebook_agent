@@ -48,14 +48,24 @@ Rules:
  * Fetches every saved voice example as few-shot tone reference, then asks Claude
  * for a single post. Returns the generated text string.
  *
- * @param {'tech_tip_tuesday'|'wait_what_wednesday'|'friday_weekend'} postType
+ * An optional free-text `topic` steers what the post is about (e.g. "the
+ * internet, with a case of the Mondays"). It's woven into the post while still
+ * honoring the post type's format and the owner's voice.
+ *
+ * @param {'tech_tip_tuesday'|'wait_what_wednesday'|'friday_weekend'|'general'} postType
+ * @param {string} [topic] optional subject/angle to steer the post
  * @returns {Promise<string>}
  */
-export async function generatePost(postType) {
-  const userPrompt = USER_PROMPTS[postType];
-  if (!userPrompt) {
+export async function generatePost(postType, topic) {
+  const basePrompt = USER_PROMPTS[postType];
+  if (!basePrompt) {
     throw new Error(`Unknown post type: ${postType}`);
   }
+
+  const trimmedTopic = typeof topic === 'string' ? topic.trim() : '';
+  const userPrompt = trimmedTopic
+    ? `${basePrompt}\n\nCenter this post on the following topic or angle: "${trimmedTopic}". Weave it in naturally — it should still read as a genuine post in the owner's voice, not a forced mashup.`
+    : basePrompt;
 
   const { rows: voiceExamples } = await query(
     'SELECT content FROM voice_examples ORDER BY created_at ASC'
