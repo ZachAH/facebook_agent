@@ -18,6 +18,46 @@ const USER_PROMPTS = {
     'Write a general Facebook post for ZH Web Solutions. Could be a relatable observation about running a small business online, a quick win or story from a client project, a question to spark engagement, or a reminder about why owning your website matters. Keep it natural and conversational — no forced themes, just something worth saying today.',
 };
 
+// Rotating topic pools for the recurring themed post types. The scheduler
+// steps through these in order (see scheduler.js) so consecutive weeks don't
+// land on the same subject. Exported so the scheduler can compute rotation
+// length without duplicating the lists.
+export const TOPIC_ROTATIONS = {
+  tech_tip_tuesday: [
+    'using a password manager instead of reusing passwords',
+    'keeping plugins, themes, and CMS software updated',
+    'why regular website backups matter',
+    'spotting phishing emails before they cause damage',
+    'setting a strong, unique Wi-Fi password',
+    'what the SSL padlock icon actually means',
+    'why mobile-friendly design affects more than looks',
+    'how page load speed impacts visitors and search ranking',
+    'turning on two-factor authentication for business accounts',
+    'not letting your domain registration lapse',
+    'the risks of browser autofill on shared devices',
+    'why "www vs no-www" and redirects matter for consistency',
+  ],
+  wait_what_wednesday: [
+    'Google mostly indexes the mobile version of your site, not desktop',
+    'stuffing keywords in can hurt your ranking instead of helping it',
+    'most visitors decide to leave or stay within a few seconds',
+    'most people never scroll past what they see first',
+    'domain age barely moves the needle on SEO',
+    'a slow-loading image can cost you more visitors than bad copy',
+    'having a Facebook page is not the same as having a website you own',
+    'title tags matter more to search engines than most page text',
+    'broken links quietly hurt trust and rankings over time',
+    'https is a ranking signal, not just a security nicety',
+  ],
+};
+
+/** Deterministically pick the next topic in a rotation given a running index. */
+export function pickRotationTopic(postType, index) {
+  const pool = TOPIC_ROTATIONS[postType];
+  if (!pool || pool.length === 0) return undefined;
+  return pool[index % pool.length];
+}
+
 function buildSystemPrompt(voiceExamples) {
   const examples = voiceExamples.length
     ? voiceExamples.map((e) => e.content).join('\n---\n')
@@ -52,20 +92,30 @@ Rules:
  * internet, with a case of the Mondays"). It's woven into the post while still
  * honoring the post type's format and the owner's voice.
  *
+ * `recentPosts` is a safety net independent of topic rotation: recent post
+ * bodies of the same type, passed so Claude avoids echoing them even if a
+ * topic repeats or no topic is given at all.
+ *
  * @param {'tech_tip_tuesday'|'wait_what_wednesday'|'friday_weekend'|'general'} postType
  * @param {string} [topic] optional subject/angle to steer the post
+ * @param {string[]} [recentPosts] recent post bodies of this type to avoid repeating
  * @returns {Promise<string>}
  */
-export async function generatePost(postType, topic) {
+export async function generatePost(postType, topic, recentPosts = []) {
   const basePrompt = USER_PROMPTS[postType];
   if (!basePrompt) {
     throw new Error(`Unknown post type: ${postType}`);
   }
 
   const trimmedTopic = typeof topic === 'string' ? topic.trim() : '';
-  const userPrompt = trimmedTopic
+  let userPrompt = trimmedTopic
     ? `${basePrompt}\n\nCenter this post on the following topic or angle: "${trimmedTopic}". Weave it in naturally — it should still read as a genuine post in the owner's voice, not a forced mashup.`
     : basePrompt;
+
+  if (recentPosts.length) {
+    const recentBlock = recentPosts.map((p, i) => `${i + 1}. ${p}`).join('\n');
+    userPrompt += `\n\nDo not repeat or closely paraphrase these recent posts of the same type — write something genuinely different:\n${recentBlock}`;
+  }
 
   const { rows: voiceExamples } = await query(
     'SELECT content FROM voice_examples ORDER BY created_at ASC'

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { query } from '../db/client.js';
-import { generatePost } from '../agents/contentAgent.js';
+import { generatePost, pickRotationTopic } from '../agents/contentAgent.js';
 import { generateImage } from '../services/imageService.js';
 import { getTokenStatus } from '../services/facebookService.js';
 import { sendDraftSMS } from '../services/twilioService.js';
@@ -34,6 +34,42 @@ async function alreadyGeneratedThisWeek(postType) {
   return rows.length > 0;
 }
 
+/**
+ * Fetch and advance the rotation index for a post type's topic pool. Stored
+ * in `settings` under `topic_index_<postType>` so it persists across restarts
+ * and deploys — each call returns the topic to use *now* and bumps the
+ * counter for next time.
+ */
+async function nextRotationTopic(postType) {
+  const settingKey = `topic_index_${postType}`;
+  const { rows } = await query('SELECT value FROM settings WHERE key = $1', [settingKey]);
+  const index = rows[0] ? parseInt(rows[0].value, 10) || 0 : 0;
+
+  const topic = pickRotationTopic(postType, index);
+  if (topic === undefined) return undefined; // no rotation pool for this post type
+
+  await query(
+    `INSERT INTO settings (key, value, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [settingKey, String(index + 1)]
+  );
+  return topic;
+}
+
+/** Recent post bodies of this type, most recent first — passed to the content
+ * agent as a repetition safety net independent of topic rotation. */
+async function recentPostBodies(postType, limit = 4) {
+  const { rows } = await query(
+    `SELECT content FROM posts
+      WHERE post_type = $1
+      ORDER BY created_at DESC
+      LIMIT $2`,
+    [postType, limit]
+  );
+  return rows.map((r) => r.content);
+}
+
 /** Compute a scheduled_for timestamp from a "HH:MM" setting for today. */
 function scheduledForFromSetting(hhmm) {
   if (!hhmm) return null;
@@ -51,7 +87,9 @@ async function runJob(postType, timeKey) {
     }
 
     console.log(`[cron] generating ${postType} draft`);
-    const content = await generatePost(postType);
+    const topic = await nextRotationTopic(postType);
+    const recentPosts = await recentPostBodies(postType);
+    const content = await generatePost(postType, topic, recentPosts);
     const imageUrl = await generateImage(postType, content);
 
     const { rows: settings } = await query('SELECT value FROM settings WHERE key = $1', [
