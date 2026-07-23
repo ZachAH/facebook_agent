@@ -372,6 +372,14 @@ td {
   font-size: 14px;
   line-height: 1.5;
 }
+.example-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
 .health-line {
   display: flex;
   align-items: center;
@@ -430,6 +438,7 @@ select:focus {
   .content { padding: 16px; }
   .card { padding: 16px; }
   .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .example-toggle-row { align-items: flex-start; flex-direction: column; }
   textarea { font-size: 14px; }
   table { font-size: 13px; }
   th, td { padding: 8px 6px; }

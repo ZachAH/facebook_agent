@@ -14,10 +14,13 @@ const SCHEDULE_FIELDS = [
   { key: 'post_time_friday', label: 'Friday' },
 ];
 
+const VISIBLE_EXAMPLES = 5;
+
 export default function Settings() {
   const [settings, setSettings] = useState({});
   const [examples, setExamples] = useState([]);
   const [newExample, setNewExample] = useState('');
+  const [showAllExamples, setShowAllExamples] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
   const [health, setHealth] = useState(null);
   const [healthLoading, setHealthLoading] = useState(false);
@@ -86,8 +89,9 @@ export default function Settings() {
       });
       setExamples((prev) => [data, ...prev]);
       setNewExample('');
+      setShowAllExamples(false);
     } catch {
-      setError('Could not add example.');
+      setError('Could not add tone guidance.');
     }
   }
 
@@ -151,6 +155,11 @@ export default function Settings() {
     }
   }
 
+  const visibleExamples = showAllExamples
+    ? examples
+    : examples.slice(0, VISIBLE_EXAMPLES);
+  const hiddenExampleCount = Math.max(examples.length - VISIBLE_EXAMPLES, 0);
+
   return (
     <div>
       <h1>Settings</h1>
@@ -186,13 +195,13 @@ export default function Settings() {
 
       {/* Section 2: Voice examples */}
       <div className="card">
-        <h2 className="section-title">Voice examples</h2>
+        <h2 className="section-title">Tone of voice</h2>
         <p className="subtitle" style={{ marginBottom: 14 }}>
-          Real posts Claude uses as tone reference.
+          Add real posts, brand phrases, audience notes, or writing rules Claude should use when drafting.
         </p>
 
         <textarea
-          placeholder="Paste a real post that sounds like you…"
+          placeholder="Example: Keep posts plain-spoken and helpful. Mention local Wisconsin businesses when it fits. Avoid hype, buzzwords, and hard sales pitches."
           value={newExample}
           onChange={(e) => setNewExample(e.target.value)}
         />
@@ -202,14 +211,14 @@ export default function Settings() {
           onClick={addExample}
           disabled={!newExample.trim()}
         >
-          Add example
+          Add tone guidance
         </button>
 
         <div style={{ marginTop: 18 }}>
           {examples.length === 0 && (
-            <p className="subtitle">No examples saved yet.</p>
+            <p className="subtitle">No tone guidance saved yet.</p>
           )}
-          {examples.map((ex) => (
+          {visibleExamples.map((ex) => (
             <div key={ex.id} className="example-item">
               <p>{ex.content}</p>
               <button className="btn-reject" onClick={() => deleteExample(ex.id)}>
@@ -217,6 +226,21 @@ export default function Settings() {
               </button>
             </div>
           ))}
+          {hiddenExampleCount > 0 && (
+            <div className="example-toggle-row">
+              <button
+                className="btn-ghost"
+                onClick={() => setShowAllExamples((prev) => !prev)}
+              >
+                {showAllExamples
+                  ? 'Show fewer'
+                  : `Show all ${examples.length} tone notes`}
+              </button>
+              {!showAllExamples && (
+                <span>{hiddenExampleCount} more hidden</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
