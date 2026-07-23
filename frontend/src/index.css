@@ -278,6 +278,73 @@ label {
   font-size: 12px;
 }
 
+/* Draft quality */
+.quality-panel {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.quality-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.quality-summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.quality-summary strong {
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.quality-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quality-check-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quality-bar {
+  background: var(--surface-2);
+  border-radius: 999px;
+  height: 6px;
+  margin: 7px 0;
+  overflow: hidden;
+}
+
+.quality-bar span {
+  background: var(--green);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.quality-check p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
 /* Image preview */
 .image-preview img {
   width: 100%;
@@ -438,6 +505,7 @@ select:focus {
   .content { padding: 16px; }
   .card { padding: 16px; }
   .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quality-checks { grid-template-columns: 1fr; }
   .example-toggle-row { align-items: flex-start; flex-direction: column; }
   textarea { font-size: 14px; }
   table { font-size: 13px; }

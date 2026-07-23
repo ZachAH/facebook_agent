@@ -6,6 +6,7 @@ import { generatePost } from '../agents/contentAgent.js';
 import { generateImage } from '../services/imageService.js';
 import { sendDraftSMS } from '../services/twilioService.js';
 import { sendDraftNotification } from '../services/notificationService.js';
+import { attachDraftQuality, evaluateDraftQuality } from '../services/draftQualityService.js';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.post('/generate', async (req, res) => {
       console.warn('[generate] push notification failed:', err.message)
     );
 
-    res.json(post);
+    res.json({ ...post, quality: await evaluateDraftQuality(post) });
   } catch (err) {
     console.error('[generate]', err);
     res.status(500).json({ error: err.message });
@@ -155,7 +156,7 @@ router.get('/', async (req, res) => {
           [status]
         )
       : await query('SELECT * FROM posts ORDER BY created_at DESC');
-    res.json(result.rows);
+    res.json(await attachDraftQuality(result.rows));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -166,7 +167,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
-    res.json(rows[0]);
+    res.json({ ...rows[0], quality: await evaluateDraftQuality(rows[0]) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -184,7 +185,7 @@ router.patch('/:id', async (req, res) => {
       [content, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
-    res.json(rows[0]);
+    res.json({ ...rows[0], quality: await evaluateDraftQuality(rows[0]) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

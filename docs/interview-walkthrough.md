@@ -30,6 +30,7 @@ The app uses an LLM to draft posts in the owner's voice, renders branded graphic
 - **Few-shot voice examples:** Gives the model user-specific context without training or maintaining a custom model.
 - **Generated images only where useful:** Branded graphics are rendered for recurring educational post types; simpler posts stay text-only.
 - **Operational metrics:** The dashboard now exposes publish count, approval rate, average time to publish, and failure rate from existing production data.
+- **Draft quality evaluation:** Each draft receives rule-based checks for length, CTA strength, repetition risk, and voice fit before the owner approves it.
 
 ## Tradeoffs
 
@@ -47,6 +48,7 @@ The app uses an LLM to draft posts in the owner's voice, renders branded graphic
 - Push subscription pruning when browser endpoints expire.
 - Managed deployment split between backend, database, frontend, and media hosting.
 - Explicit failure states and error messages for publish failures.
+- Transparent AI quality checks before publication.
 
 ## Pearson-Relevant Framing
 
@@ -60,11 +62,12 @@ The app uses an LLM to draft posts in the owner's voice, renders branded graphic
 
 1. Open the dashboard and show pending drafts plus production metrics.
 2. Generate a draft with a specific topic to show controllable AI output.
-3. Edit the post inline to demonstrate human-in-the-loop review.
-4. Show the generated image preview for Tech Tip Tuesday or Wait What Wednesday.
-5. Explain approve/reject behavior and why approval is idempotent.
-6. Show Settings for schedule, voice examples, push notifications, and integration health.
-7. Show History as the audit trail of published, rejected, and failed posts.
+3. Show the Draft Quality panel and explain that AI output is evaluated before approval.
+4. Edit the post inline to demonstrate human-in-the-loop review and refreshed quality scoring.
+5. Show the generated image preview for Tech Tip Tuesday or Wait What Wednesday.
+6. Explain approve/reject behavior and why approval is idempotent.
+7. Show Settings for schedule, voice examples, push notifications, and integration health.
+8. Show History as the audit trail of published, rejected, and failed posts.
 
 ## Strong Interview Talking Points
 
@@ -72,7 +75,7 @@ The app uses an LLM to draft posts in the owner's voice, renders branded graphic
 - "The core product decision was keeping a human approval gate because the cost of one bad public post is higher than the cost of one tap."
 - "I used saved voice examples as lightweight personalization because it was faster and more maintainable than model fine-tuning for this use case."
 - "The publish path is intentionally idempotent so repeated notification taps cannot accidentally create duplicate posts."
-- "The next production step would be formal evaluation: compare generated drafts against rubric scores for voice fit, repetition, factuality, and edit distance before approval."
+- "I started with transparent rule-based evaluation because it is explainable, cheap to run, and gives the owner useful review signals before adding heavier model-based evaluation."
 
 ## Next Improvements
 

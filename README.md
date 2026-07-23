@@ -117,6 +117,7 @@ npm run import:voice
 - **Generate Draft** — pick a post type and generate on demand
 - **🎲 Random** — generate a random variation of the currently selected post type
 - **Production signals** — see publish count, approval rate, average time to publish, and failure rate
+- **Draft quality scoring** — evaluate AI drafts for length, CTA strength, repetition risk, and voice fit before approval
 - **History** — all published and rejected posts with links to live Facebook posts
 - **Settings** — adjust schedule times, manage voice examples, test connections
 - **Push notifications** — enable per device; works on phone over cellular once deployed

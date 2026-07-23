@@ -9,11 +9,47 @@ const TYPE_LABELS = {
   general: 'General Post',
 };
 
+const QUALITY_LABELS = {
+  length: 'Length',
+  cta: 'CTA',
+  repetition: 'Repetition',
+  voiceFit: 'Voice fit',
+};
+
+function QualityPanel({ quality }) {
+  if (!quality) return null;
+
+  return (
+    <div className="quality-panel">
+      <div className="quality-summary">
+        <span>Draft Quality</span>
+        <strong>{quality.score}</strong>
+        <span>{quality.grade}</span>
+      </div>
+      <div className="quality-checks">
+        {Object.entries(quality.checks).map(([key, check]) => (
+          <div key={key} className="quality-check">
+            <div className="quality-check-top">
+              <span>{QUALITY_LABELS[key] || key}</span>
+              <strong>{check.score}</strong>
+            </div>
+            <div className="quality-bar" aria-hidden="true">
+              <span style={{ width: `${check.score}%` }} />
+            </div>
+            <p>{check.note}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Draft preview with inline-editable content + approve/reject actions.
  * Optimistically removes the card from the parent list on action.
  */
 export default function PostCard({ post, onResolved }) {
+  const [draft, setDraft] = useState(post);
   const [content, setContent] = useState(post.content);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,11 +57,12 @@ export default function PostCard({ post, onResolved }) {
 
   async function saveEdit() {
     setEditing(false);
-    if (content === post.content) return;
+    if (content === draft.content) return;
     try {
-      await api.patch(`/posts/${post.id}`, { content });
+      const { data } = await api.patch(`/posts/${post.id}`, { content });
+      setDraft(data);
     } catch {
-      setContent(post.content); // revert on failure
+      setContent(draft.content); // revert on failure
       setError('Could not save edit.');
     }
   }
@@ -84,7 +121,9 @@ export default function PostCard({ post, onResolved }) {
         </div>
       )}
 
-      <ImagePreview url={post.image_url} />
+      <ImagePreview url={draft.image_url} />
+
+      <QualityPanel quality={draft.quality} />
 
       <div className="actions">
         <button className="btn-approve" onClick={approve} disabled={busy}>
