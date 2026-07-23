@@ -116,9 +116,14 @@ npm run import:voice
 - **Inline editing** — click any post body to edit before approving
 - **Generate Draft** — pick a post type and generate on demand
 - **🎲 Random** — generate a random variation of the currently selected post type
+- **Production signals** — see publish count, approval rate, average time to publish, and failure rate
 - **History** — all published and rejected posts with links to live Facebook posts
 - **Settings** — adjust schedule times, manage voice examples, test connections
 - **Push notifications** — enable per device; works on phone over cellular once deployed
+
+## Interview walkthrough
+
+See [`docs/interview-walkthrough.md`](docs/interview-walkthrough.md) for the product story, architecture, tradeoffs, production-readiness details, and demo path.
 
 ## PWA install
 
@@ -187,6 +192,7 @@ A daily cron checks token health and sends a push notification if it ever goes i
 | POST | `/api/posts/:id/approve` | JWT | Approve + publish to Facebook |
 | POST | `/api/posts/:id/reject` | JWT | Reject draft |
 | POST | `/api/posts/generate` | JWT | `{ type }` → generate a draft now |
+| GET | `/api/posts/metrics` | JWT | Dashboard production metrics |
 | GET | `/api/settings` | JWT | Get settings + voice examples |
 | PATCH | `/api/settings` | JWT | Update settings |
 | POST | `/api/settings/voice-examples` | JWT | Add voice example |

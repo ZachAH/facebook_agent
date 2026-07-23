@@ -116,6 +116,41 @@ h1 {
   margin-bottom: 18px;
 }
 
+/* Metrics */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.metric-card strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.metric-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-label {
+  display: block;
+  color: var(--text) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* Buttons */
 button {
   font-family: inherit;
@@ -369,7 +404,7 @@ select {
   outline: none;
 }
 select:focus {
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 /* ── Mobile responsive ───────────────────────────────────────── */
@@ -394,6 +429,7 @@ select:focus {
   .app { flex-direction: column; }
   .content { padding: 16px; }
   .card { padding: 16px; }
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   textarea { font-size: 14px; }
   table { font-size: 13px; }
   th, td { padding: 8px 6px; }

@@ -15,8 +15,19 @@ function defaultPostType() {
   return match ? match.value : 'tech_tip_tuesday';
 }
 
+function formatPercent(value) {
+  return value === null || value === undefined ? 'N/A' : `${value}%`;
+}
+
+function formatMinutes(value) {
+  if (value === null || value === undefined) return 'N/A';
+  if (value < 1) return '<1 min';
+  return `${Math.round(value)} min`;
+}
+
 export default function Dashboard() {
   const [posts, setPosts] = useState([]);
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -32,12 +43,21 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }
 
+  function loadMetrics() {
+    return api
+      .get('/posts/metrics')
+      .then(({ data }) => setMetrics(data))
+      .catch(() => setMetrics(null));
+  }
+
   useEffect(() => {
     loadPosts();
+    loadMetrics();
   }, []);
 
   function handleResolved(id) {
     setPosts((prev) => prev.filter((p) => p.id !== id));
+    loadMetrics();
   }
 
   async function generatePost(type) {
@@ -50,6 +70,7 @@ export default function Dashboard() {
         ...(topic ? { topic } : {}),
       });
       setPosts((prev) => [data, ...prev]);
+      loadMetrics();
     } catch (err) {
       setGenError(err.response?.data?.error || 'Generation failed.');
     } finally {
@@ -104,6 +125,31 @@ export default function Dashboard() {
       </div>
 
       {error && <div className="error-text">{error}</div>}
+
+      {metrics && (
+        <div className="metrics-grid" aria-label="Production signals">
+          <div className="metric-card">
+            <span className="metric-label">Published</span>
+            <strong>{metrics.totals.published}</strong>
+            <span>{metrics.totals.total} total drafts</span>
+          </div>
+          <div className="metric-card">
+            <span className="metric-label">Approval Rate</span>
+            <strong>{formatPercent(metrics.approvalRate)}</strong>
+            <span>published vs. resolved</span>
+          </div>
+          <div className="metric-card">
+            <span className="metric-label">Avg. Time To Live</span>
+            <strong>{formatMinutes(metrics.avgPublishMinutes)}</strong>
+            <span>draft created to published</span>
+          </div>
+          <div className="metric-card">
+            <span className="metric-label">Failures</span>
+            <strong>{metrics.totals.failed}</strong>
+            <span>{formatPercent(metrics.failureRate)} of resolved drafts</span>
+          </div>
+        </div>
+      )}
 
       {!loading && posts.length === 0 && !error && (
         <div className="empty">

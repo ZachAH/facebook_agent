@@ -14,6 +14,13 @@ router.use(requireAuth);
 
 const VALID_TYPES = ['tech_tip_tuesday', 'wait_what_wednesday', 'friday_weekend', 'general'];
 
+function countMap(rows, key = 'status') {
+  return rows.reduce((acc, row) => {
+    acc[row[key]] = Number(row.count);
+    return acc;
+  }, {});
+}
+
 /**
  * POST /api/posts/generate
  * Manually trigger a draft (same logic as the cron job). Body: { type }
@@ -54,6 +61,83 @@ router.post('/generate', async (req, res) => {
     res.json(post);
   } catch (err) {
     console.error('[generate]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/posts/metrics
+ * Lightweight production signals for the dashboard and interview demo.
+ */
+router.get('/metrics', async (_req, res) => {
+  try {
+    const [statusResult, typeResult, latencyResult, failedResult] = await Promise.all([
+      query('SELECT status, COUNT(*)::int AS count FROM posts GROUP BY status'),
+      query(
+        `SELECT post_type, status, COUNT(*)::int AS count
+           FROM posts
+          GROUP BY post_type, status
+          ORDER BY post_type, status`
+      ),
+      query(
+        `SELECT AVG(EXTRACT(EPOCH FROM (published_at - created_at)) / 60)::float AS minutes
+           FROM posts
+          WHERE status = 'published'
+            AND published_at IS NOT NULL`
+      ),
+      query(
+        `SELECT id, post_type, error_message, created_at
+           FROM posts
+          WHERE status = 'failed'
+          ORDER BY created_at DESC
+          LIMIT 3`
+      ),
+    ]);
+
+    const totals = countMap(statusResult.rows);
+    const totalPosts = Object.values(totals).reduce((sum, count) => sum + count, 0);
+    const resolvedCount = (totals.published || 0) + (totals.rejected || 0) + (totals.failed || 0);
+    const approvalRate = resolvedCount
+      ? Math.round(((totals.published || 0) / resolvedCount) * 100)
+      : null;
+    const failureRate = resolvedCount
+      ? Math.round(((totals.failed || 0) / resolvedCount) * 100)
+      : null;
+
+    const byTypeMap = new Map();
+    for (const row of typeResult.rows) {
+      if (!byTypeMap.has(row.post_type)) {
+        byTypeMap.set(row.post_type, {
+          postType: row.post_type,
+          total: 0,
+          pending: 0,
+          approved: 0,
+          published: 0,
+          rejected: 0,
+          failed: 0,
+        });
+      }
+      const bucket = byTypeMap.get(row.post_type);
+      bucket[row.status] = Number(row.count);
+      bucket.total += Number(row.count);
+    }
+
+    res.json({
+      totals: {
+        total: totalPosts,
+        pending: totals.pending || 0,
+        approved: totals.approved || 0,
+        published: totals.published || 0,
+        rejected: totals.rejected || 0,
+        failed: totals.failed || 0,
+      },
+      approvalRate,
+      failureRate,
+      avgPublishMinutes: latencyResult.rows[0]?.minutes ?? null,
+      byType: Array.from(byTypeMap.values()),
+      recentFailures: failedResult.rows,
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
